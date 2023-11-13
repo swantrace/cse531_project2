@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package branchtobranch;
+
+// Message for updating balance (either deposit or withdraw)
+message BalanceUpdateRequest {
+    int32 branchId = 1;
+    int32 amount = 2;
+}
+
+message BalanceUpdateResponse {
+    bool success = 1;   
+}
+
+// Services for inter-branch communication
+service BranchToBranch {
+    rpc propagateDeposit(BalanceUpdateRequest) returns (BalanceUpdateResponse);
+    rpc propagateWithdraw(BalanceUpdateRequest) returns (BalanceUpdateResponse);
+}

@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package customertobranch;
+
+// Message for customer transactions(deposit, withdraw or query)
+message TransactionRequest {
+    int32 branchId = 1;
+    int32 amount = 2;
+}
+
+message TransactionResponse {
+    bool success = 1;
+    int32 balance = 2;
+}
+
+// Service for customer operations on a branch
+service CustomerToBranch {
+    rpc deposit(TransactionRequest) returns (TransactionResponse);
+    rpc withdraw(TransactionRequest) returns (TransactionResponse);
+    rpc query(TransactionRequest) returns (TransactionResponse);
+}
