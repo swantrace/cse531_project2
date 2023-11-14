@@ -26,6 +26,9 @@ const BASE_PORT = process.env.BASE_PORT || 5000;
 class Customer {
   constructor(id) {
     this.id = id;
+    this.clock = 0;
+    this.events = [];
+    this.balance = 0;
   }
 
   createStub() {
@@ -36,92 +39,95 @@ class Customer {
   }
 
   async executeEvents(events = []) {
-    const record = { id: this.id, recv: [] };
     for (const event of events) {
-      const branchId = event.branchId;
-      let res;
-      switch (event.interface) {
-        case "deposit":
-          res = await this.deposit(branchId, event.money);
-          record.recv.push({
-            interface: "deposit",
-            result: res.success ? "success" : "failure",
-          });
-          break;
-        case "withdraw":
-          res = await this.withdraw(branchId, event.money);
-          record.recv.push({
-            interface: "withdraw",
-            result: res.success ? "success" : "failure",
-          });
-          break;
-        case "query":
-          res = await this.query(branchId);
-          record.recv.push({ interface: "query", balance: res.balance });
-          break;
-        default:
-          console.error(`Unknown event interface: ${event.interface}`);
+      const { branchId, money } = event;
+      const customerRequestId = event["customer-request-id"];
+      this.clock = this.clock + 1;
+      this.events.push({
+        "customer-request-id": customerRequestId,
+        logical_clock: this.clock,
+        interface: event.interface,
+        comment: `event_sent from customer ${this.id}`,
+      });
+      try {
+        let res;
+        switch (event.interface) {
+          case "deposit":
+            res = await this.deposit(branchId, money, customerRequestId);
+            break;
+          case "withdraw":
+            res = await this.withdraw(branchId, money, customerRequestId);
+            break;
+          case "query":
+            res = await this.query(branchId, customerRequestId);
+            break;
+          default:
+            console.error(`Unknown event interface: ${event.interface}`);
+        }
+        this.balance = res.balance;
+      } catch (error) {
+        console.error(error);
       }
     }
-    // parent folder's output.txt
-    fs.appendFileSync(
-      path.join(__dirname, "../output.txt"),
-      JSON.stringify(record) + "\n",
-      "utf8"
-    );
   }
 
-  deposit(branchId, amount) {
+  deposit(branchId, amount, customerRequestId) {
     return new Promise((resolve, reject) => {
-      this.stub.deposit({ branchId, amount }, (error, response) => {
-        if (error) {
-          console.error(
-            `Deposit error for Customer ${this.id} to Branch ${branchId}: ${error.message}`
-          );
-          reject(error);
-        } else {
-          console.log(
-            `Customer ${this.id} deposited ${amount} to Branch ${branchId}. New balance: ${response.balance}`
-          );
-          resolve(response);
+      // to do: pass correct clock value
+      this.stub.deposit(
+        { branchId, amount, clock: this.clock, customerRequestId },
+        (error, response) => {
+          if (error) {
+            console.error(
+              `Deposit error for Customer ${this.id} to Branch ${branchId}: ${error.message}`
+            );
+            reject(error);
+          } else {
+            resolve(response);
+          }
         }
-      });
+      );
     });
   }
 
-  withdraw(branchId, amount) {
+  withdraw(branchId, amount, customerRequestId) {
     return new Promise((resolve, reject) => {
-      this.stub.withdraw({ branchId, amount }, (error, response) => {
-        if (error) {
-          console.error(
-            `Withdraw error for Customer ${this.id} to Branch ${branchId}: ${error.message}`
-          );
-          reject(error);
-        } else {
-          console.log(
-            `Customer ${this.id} withdrew ${amount} from Branch ${branchId}. New balance: ${response.balance}`
-          );
-          resolve(response);
+      // to do: pass correct clock value
+      this.stub.withdraw(
+        { branchId, amount, clock: this.clock, customerRequestId },
+        (error, response) => {
+          if (error) {
+            console.error(
+              `Withdraw error for Customer ${this.id} to Branch ${branchId}: ${error.message}`
+            );
+            reject(error);
+          } else {
+            resolve(response);
+          }
         }
-      });
+      );
     });
   }
 
-  query(branchId) {
+  query(branchId, customerRequestId) {
     return new Promise((resolve, reject) => {
-      this.stub.query({ branchId }, (error, response) => {
-        if (error) {
-          console.error(
-            `Query error for Customer ${this.id} on Branch ${branchId}: ${error.message}`
-          );
-          reject(error);
-        } else {
-          console.log(
-            `Customer ${this.id} queried balance on Branch ${branchId}. Balance: ${response.balance}`
-          );
-          resolve(response);
+      // to do: pass correct clock value
+      this.stub.query(
+        { branchId, clock: this.clock, customerRequestId },
+        (error, response) => {
+          if (error) {
+            console.error(
+              `Query error for Customer ${this.id} on Branch ${branchId}: ${error.message}`
+            );
+            reject(error);
+          } else {
+            console.log(
+              `Customer ${this.id} queried balance on Branch ${branchId}. Balance: ${response.balance}`
+            );
+            resolve(response);
+          }
         }
-      });
+      );
     });
   }
 }

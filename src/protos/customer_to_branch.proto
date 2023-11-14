@@ -5,7 +5,9 @@ package customertobranch;
 // Message for customer transactions(deposit, withdraw or query)
 message TransactionRequest {
     int32 branchId = 1;
-    int32 amount = 2;
+    int32 clock = 2;
+    int32 customerRequestId = 3;
+    int32 amount = 4;
 }
 
 message TransactionResponse {

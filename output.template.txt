@@ -1,0 +1,6 @@
+// Part 1: List all the events taken place on each customer
+{{ customer_events }}
+// Part 2: List all the events taken place on each branch
+{{ branch_events }}
+// Part 3: List all the events (along with their logical times) triggered by each customer Deposit/Withdraw request
+{{ customer_request_events }}
